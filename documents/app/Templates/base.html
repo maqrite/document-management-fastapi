@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+  <head>
+    {% if title %}
+      <title>{{ title }} - documents</title>
+    {% else %}
+      <title>documents</title>
+    {% endif %}
+  </head>
+  <body>
+    <div>
+      site:
+      <a href="/main">Home</a>  <!-- гиперссылки на страницы в "голове" сайта -->
+      <a href="/login">Login</a>
+    </div>
+    <hr>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+          {% for message in messages %}
+            <li>{{ message }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </body>
+</html>
