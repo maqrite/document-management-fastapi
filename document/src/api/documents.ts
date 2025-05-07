@@ -1,14 +1,22 @@
-import axios from 'axios';
+export interface UploadResponse {
+    id: string;
+    name: string;
+    status: string;
+}
 
-export const uploadDocument = async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
+export const uploadDocument = async (file: File): Promise<UploadResponse> => {
+    // Имитация запроса к API
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const response = await axios.post('/api/documents', formData, {
-        headers: {
-            'Content-Type': 'multipart/form-data',
-        },
-    });
+    return {
+        id: Date.now().toString(),
+        name: file.name,
+        status: 'На подписании'
+    };
+};
 
-    return response.data;
+export const getDocuments = async (): Promise<UploadResponse[]> => {
+    return [
+        { id: '1', name: 'Пример документа.docx', status: 'На подписании' }
+    ];
 };
