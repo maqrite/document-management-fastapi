@@ -21,21 +21,20 @@ async def create_file(session: AsyncSession, file: FileCreate) -> File | Excepti
     return file
 
 async def update_file(
-        session: AsyncSession, 
-        file: File, 
+        session: AsyncSession,
+        file: File,
         file_update: FileUpdate | FileUpdatePartial,
         partial: bool = False,
     ) -> File:
-    
+
     for name, value in file_update.model_dump(exclude_unset=partial).items():
         setattr(file, name, value)
     await session.commit()
     return file
 
 async def delete_file(
-        session: AsyncSession, 
+        session: AsyncSession,
         file: File
     ) -> None:
     await session.delete(file)
     await session.commit()
-    

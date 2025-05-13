@@ -1,5 +1,6 @@
 import uvicorn
 from api_v1.users.routes import router as users_router
+from api_v1.auth.routes import router as auth_router
 from api_v1 import router as router_v1
 from core.config import settings
 from fastapi import FastAPI
@@ -18,6 +19,7 @@ app = FastAPI(lifespan=lifespan)
 
 app.include_router(router=router_v1, prefix=settings.api_v1_prefix)
 app.include_router(users_router)
+app.include_router(auth_router, prefix=settings.api_v1_prefix)
 
 
 @app.get("/")
