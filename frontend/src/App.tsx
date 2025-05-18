@@ -1,25 +1,22 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Layout } from 'antd';
-import DocumentsPage from './pages/DocumentsPage';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
-
-const { Header, Content } = Layout;
+import MainLayout from './pages/MainLayout';
+import AboutPage from './pages/AboutPage';
+import DocumentsPage from './pages/DocumentsPage';
+import FileDetailsPage from './pages/FileDetailsPage';
 
 function App() {
   return (
-    <BrowserRouter>
-      <Layout style={{ minHeight: '100vh' }}>
-        <Header style={{ color: 'white', fontSize: '18px' }}>
-          Система документооборота
-        </Header>
-        <Content style={{ padding: '24px' }}>
-          <Routes>
-            <Route path="/" element={<LoginPage />} />
-            <Route path="/documents" element={<DocumentsPage />} />
-          </Routes>
-        </Content>
-      </Layout>
-    </BrowserRouter>
+    <Router>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<MainLayout />}>
+          <Route path="documents" element={<DocumentsPage />} />
+          <Route path="documents/:fileId" element={<FileDetailsPage />} />
+          <Route path="about" element={<AboutPage />} />
+        </Route>
+      </Routes>
+    </Router>
   );
 }
 

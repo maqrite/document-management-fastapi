@@ -5,32 +5,48 @@ from sqlmodel import Session
 from datetime import timedelta
 from app import crud, models, schemas, auth, dependencies
 from app.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/users",
     tags=["users"],
 )
 
-@router.post("/register/", response_model=models.UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("/register/", response_model=schemas.TokenWithUser, status_code=status.HTTP_201_CREATED)
 def register_user(
     user_in: models.UserCreate,
     session: Session = Depends(dependencies.get_session)
 ):
+    logger.info(f"Received POST /register for email: {user_in.email}")
     db_user = crud.get_user_by_email(session, email=user_in.email)
     if db_user:
+        logger.warning(f"Registration failed: email already registered ({user_in.email})")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
     created_user = crud.create_user(session=session, user_in=user_in)
-    return models.UserRead.model_validate(created_user)
 
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(
+        data={"sub": created_user.email}, expires_delta=access_token_expires
+    )
+    logger.info(f"User registered successfully: {created_user.email}")
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": models.UserRead.model_validate(created_user)
+    }
 
 @router.post("/login/", response_model=schemas.Token)
 async def login_for_access_token(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     session: Session = Depends(dependencies.get_session)
 ):
+    logger.info(f"Received POST /login")
     user = crud.authenticate_user(session, email=form_data.username, password=form_data.password)
     if not user:
         raise HTTPException(
@@ -39,12 +55,15 @@ async def login_for_access_token(
             headers={"WWW-Authenticate": "Bearer"},
         )
     if not user.is_active:
+        logger.info(f"Login failed: user inactive: {user.email}")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive user")
 
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = auth.create_access_token(
         data={"sub": user.email}, expires_delta=access_token_expires
     )
+    logger.info(f"User logged in successfully: {user.email}")
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 
