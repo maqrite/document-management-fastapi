@@ -25,3 +25,8 @@ class DocumentListResponse(SQLModel):
 class DocumentDetailResponse(DocumentRead):
     permissions: List[DocumentPermissionRead] = []
     signatures: List[SignatureRead] = []
+
+class TokenWithUser(SQLModel):
+    access_token: str
+    token_type: str
+    user: UserRead

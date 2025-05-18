@@ -11,7 +11,7 @@ router = APIRouter(
     tags=["users"],
 )
 
-@router.post("/register/", response_model=models.UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("/register/", response_model=schemas.TokenWithUser, status_code=status.HTTP_201_CREATED)
 def register_user(
     user_in: models.UserCreate,
     session: Session = Depends(dependencies.get_session)
@@ -23,8 +23,17 @@ def register_user(
             detail="Email already registered"
         )
     created_user = crud.create_user(session=session, user_in=user_in)
-    return models.UserRead.model_validate(created_user)
 
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(
+        data={"sub": created_user.email}, expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": models.UserRead.model_validate(created_user)
+    }
 
 @router.post("/login/", response_model=schemas.Token)
 async def login_for_access_token(
