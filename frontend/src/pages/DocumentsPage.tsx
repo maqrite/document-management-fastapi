@@ -1,93 +1,103 @@
 import { useState, useEffect } from 'react';
-import { Table, Button, Card, message, Space } from 'antd';
+import { Button, Upload, Table, message, Space, Typography } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { getFiles, addFile, Document } from '../pages/documentService';
 
-interface Document {
-  id: string;
-  name: string;
-  size: string;
-  uploadedAt: string;
-  status: 'active' | 'archived';
-}
-
-// Заглушка API
-const getFiles = async (token: string): Promise<Document[]> => {
-  console.log('[DEBUG] Вызов getFiles с токеном:', token);
-  return [
-    { id: '1', name: 'Тестовый файл.pdf', size: '2.4 MB', uploadedAt: new Date().toISOString(), status: 'active' },
-  ];
-};
+const { Title } = Typography;
 
 export default function DocumentsPage() {
+  const navigate = useNavigate();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+  const token = localStorage.getItem('access_token') || '';
 
   useEffect(() => {
-    console.log('[DEBUG] Монтирование DocumentsPage');
-    loadDocuments();
+    fetchDocuments();
   }, []);
 
-  const loadDocuments = async () => {
-    console.log('[DEBUG] Запуск loadDocuments');
+  const fetchDocuments = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('access_token');
-      console.log('[DEBUG] Токен из localStorage:', token);
-      
-      if (!token) {
-        console.warn('[DEBUG] Токен не найден, перенаправление на /login');
-        navigate('/login');
-        return;
-      }
-
       const files = await getFiles(token);
-      console.log('[DEBUG] Полученные файлы:', files);
       setDocuments(files);
     } catch (err) {
-      console.error('[DEBUG] Ошибка загрузки:', err);
-      message.error('Ошибка загрузки документов');
+      message.error('Ошибка при загрузке документов');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleUpload = async (file: File) => {
+    try {
+      const success = await addFile(file, token);
+      if (success) {
+        message.success('Файл успешно загружен');
+        fetchDocuments();
+      } else {
+        message.error('Ошибка загрузки файла');
+      }
+    } catch (err) {
+      message.error('Ошибка загрузки файла');
+    }
+  };
+
   const columns = [
     {
-      title: 'Имя файла',
+      title: 'Название',
       dataIndex: 'name',
       key: 'name',
+      render: (name: string, record: Document) => (
+        <Button
+          type="link"
+          onClick={() => navigate(`/documents/${record.id}`)}
+        >
+          {name}
+        </Button>
+      ),
     },
     {
-      title: 'Размер',
+      title: 'Размер (КБ)',
       dataIndex: 'size',
       key: 'size',
+      render: (size: number) => (size / 1024).toFixed(2),
+    },
+    {
+      title: 'Дата загрузки',
+      dataIndex: 'uploaded_at',
+      key: 'uploaded_at',
+    },
+    {
+      title: 'Владелец',
+      dataIndex: 'owner_name',
+      key: 'owner_name',
+      render: (name: string, record: Document) => `${name} (${record.owner_email})`
     },
   ];
 
   return (
-    <Card 
-      title="Мои документы" 
-      bordered={false}
-      style={{ margin: 20, border: '2px solid #1890ff' }}
-    >
-      <h3 style={{ color: '#1890ff' }}>Компонент документов</h3>
-      <Button 
-        type="primary" 
-        onClick={() => console.log('Документы:', documents)}
-      >
-        Показать данные в консоли
-      </Button>
-      
+    <div className="documents-container">
+      <Title level={2}>Мои документы</Title>
+
+      <Space direction="vertical" style={{ width: '100%', marginBottom: 24 }}>
+        <Upload
+          accept="*"
+          showUploadList={false}
+          customRequest={({ file }) => handleUpload(file as File)}
+        >
+          <Button icon={<UploadOutlined />} type="primary">
+            Загрузить документ
+          </Button>
+        </Upload>
+      </Space>
+
       <Table
-        dataSource={documents}
         columns={columns}
+        dataSource={documents}
         rowKey="id"
         loading={loading}
-        locale={{ emptyText: 'Нет документов' }}
-        style={{ marginTop: 20 }}
+        bordered
       />
-    </Card>
+    </div>
   );
 }

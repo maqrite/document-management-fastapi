@@ -1,22 +1,57 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Form, Input, message, Tabs } from 'antd';
 import { useNavigate } from 'react-router-dom';
 
-// Заглушки функций (в реальном приложении это будут API-вызовы)
-async function blackbox(username: string, password: string): Promise<string> {
-    // Здесь должен быть реальный вызов API
-    // Пример реализации для тестирования:
-    if (username === "admin" && password === "admin123") return "success";
-    if (username === "admin") return "failure_password";
-    return "failure_username";
+interface AuthResponse {
+    access_token: string;
+    error?: string;
 }
 
-async function register(username: string, password: string): Promise<string> {
-    // Здесь должен быть реальный вызов API
-    // Пример реализации для тестирования:
-    if (username === "admin") return "failure_username";
-    if (!password) return "failure_password";
-    return "success";
+async function loginUser(email: string, password: string): Promise<AuthResponse> {
+    try {
+        const body = new URLSearchParams();
+        body.append("email", email);
+        body.append("password", password);
+
+        const response = await fetch("/api/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: body.toString(),
+        });
+
+        const data = await response.json();
+        return response.ok
+            ? { access_token: data.access_token }
+            : { access_token: '', error: data.error || 'unknown_error' };
+    } catch {
+        return { access_token: '', error: 'network_error' };
+    }
+}
+
+async function registerUser(
+    email: string,
+    password: string,
+    name: string
+): Promise<AuthResponse> {
+    try {
+        const body = new URLSearchParams();
+        body.append("email", email);
+        body.append("password", password);
+        body.append("name", name);
+
+        const response = await fetch("/api/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: body.toString(),
+        });
+
+        const data = await response.json();
+        return response.ok
+            ? { access_token: data.access_token }
+            : { access_token: '', error: data.error || 'unknown_error' };
+    } catch {
+        return { access_token: '', error: 'network_error' };
+    }
 }
 
 export default function LoginPage() {
@@ -25,86 +60,110 @@ export default function LoginPage() {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
 
-    const handleLogin = async (values: { username: string; password: string }) => {
+    useEffect(() => {
+        if (localStorage.getItem('access_token')) {
+            navigate('/documents');
+        }
+    }, [navigate]);
+
+    const handleAuthSuccess = (token: string) => {
+        localStorage.setItem('access_token', token);
+        navigate('/documents');
+    };
+
+    const handleLogin = async (values: { email: string; password: string }) => {
         setLoading(true);
         try {
-            const result = await blackbox(values.username, values.password);
-
-            if (result === "success") {
-                message.success('Добро пожаловать!');
-                navigate('/documents');
-            } else if (result === "failure_password") {
-                message.error('Неверный пароль');
-                form.setFields([{ name: 'password', errors: ['Неверный пароль'] }]);
+            const { access_token, error } = await loginUser(values.email, values.password);
+            if (access_token) {
+                message.success('Вход выполнен успешно!');
+                handleAuthSuccess(access_token);
             } else {
-                message.error('Пользователь не найден');
-                form.setFields([{ name: 'username', errors: ['Пользователь не найден'] }]);
+                handleAuthError(error || 'unknown_error', 'login');
             }
-        } catch (err) {
-            message.error('Ошибка при входе');
+        } catch {
+            message.error('Ошибка соединения с сервером');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleRegister = async (values: { username: string; password: string }) => {
+    const handleRegister = async (values: { email: string; password: string; name: string }) => {
         setLoading(true);
         try {
-            const result = await register(values.username, values.password);
+            const { access_token, error } = await registerUser(
+                values.email,
+                values.password,
+                values.name
+            );
 
-            if (result === "success") {
-                message.success('Регистрация успешна!');
-                navigate('/documents');
-            } else if (result === "failure_username") {
-                message.error('Пользователь уже существует');
-                form.setFields([{ name: 'username', errors: ['Пользователь уже существует'] }]);
+            if (access_token) {
+                message.success('Регистрация прошла успешно!');
+                handleAuthSuccess(access_token);
             } else {
-                message.error('Пароль не может быть пустым');
-                form.setFields([{ name: 'password', errors: ['Пароль не может быть пустым'] }]);
+                handleAuthError(error || 'unknown_error', 'register');
             }
-        } catch (err) {
-            message.error('Ошибка при регистрации');
+        } catch {
+            message.error('Ошибка соединения с сервером');
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleAuthError = (error: string, mode: 'login' | 'register') => {
+        const fieldMap: Record<string, string> = {
+            'incorrect_password': 'password',
+            'user_not_found': 'email',
+            'email_exists': 'email',
+            'empty_password': 'password',
+            'invalid_email': 'email'
+        };
+
+        const messages: Record<string, string> = {
+            'incorrect_password': 'Неверный пароль',
+            'user_not_found': 'Пользователь с такой почтой не найден',
+            'email_exists': 'Пользователь с такой почтой уже существует',
+            'empty_password': 'Пароль не может быть пустым',
+            'invalid_email': 'Некорректный email'
+        };
+
+        if (fieldMap[error]) {
+            form.setFields([{
+                name: fieldMap[error],
+                errors: [messages[error] || 'Ошибка']
+            }]);
+        }
+        message.error(messages[error] || (mode === 'login' ? 'Ошибка при входе' : 'Ошибка при регистрации'));
     };
 
     return (
-        <div style={{
-            maxWidth: 400,
-            margin: '100px auto',
-            padding: 24,
-            boxShadow: '0 0 10px rgba(0,0,0,0.1)'
-        }}>
+        <div className="auth-container">
             <Tabs
                 activeKey={activeTab}
                 onChange={setActiveTab}
                 centered
                 items={[
-                    {
-                        key: 'login',
-                        label: 'Вход',
-                    },
-                    {
-                        key: 'register',
-                        label: 'Регистрация',
-                    },
+                    { key: 'login', label: 'Вход' },
+                    { key: 'register', label: 'Регистрация' },
                 ]}
             />
 
             {activeTab === 'login' ? (
                 <Form form={form} onFinish={handleLogin}>
                     <Form.Item
-                        name="username"
-                        rules={[{ required: true, message: 'Введите логин' }]}
+                        name="email"
+                        rules={[
+                            { required: true, message: 'Введите email' },
+                            { type: 'email', message: 'Введите корректный email' }
+                        ]}
                     >
-                        <Input placeholder="Логин" />
+                        <Input placeholder="Email" size="large" />
                     </Form.Item>
                     <Form.Item
                         name="password"
                         rules={[{ required: true, message: 'Введите пароль' }]}
                     >
-                        <Input.Password placeholder="Пароль" />
+                        <Input.Password placeholder="Пароль" size="large" />
                     </Form.Item>
                     <Form.Item>
                         <Button
@@ -112,6 +171,7 @@ export default function LoginPage() {
                             htmlType="submit"
                             block
                             loading={loading}
+                            size="large"
                         >
                             Войти
                         </Button>
@@ -120,16 +180,31 @@ export default function LoginPage() {
             ) : (
                 <Form form={form} onFinish={handleRegister}>
                     <Form.Item
-                        name="username"
-                        rules={[{ required: true, message: 'Введите логин' }]}
+                        name="name"
+                        rules={[
+                            { required: true, message: 'Введите ваше имя' },
+                            { min: 2, message: 'Имя должно быть не менее 2 символов' }
+                        ]}
                     >
-                        <Input placeholder="Логин" />
+                        <Input placeholder="Ваше имя" size="large" />
+                    </Form.Item>
+                    <Form.Item
+                        name="email"
+                        rules={[
+                            { required: true, message: 'Введите email' },
+                            { type: 'email', message: 'Введите корректный email' }
+                        ]}
+                    >
+                        <Input placeholder="Email" size="large" />
                     </Form.Item>
                     <Form.Item
                         name="password"
-                        rules={[{ required: true, message: 'Введите пароль' }]}
+                        rules={[
+                            { required: true, message: 'Введите пароль' },
+                            { min: 6, message: 'Пароль должен быть не менее 6 символов' }
+                        ]}
                     >
-                        <Input.Password placeholder="Пароль" />
+                        <Input.Password placeholder="Пароль" size="large" />
                     </Form.Item>
                     <Form.Item>
                         <Button
@@ -137,6 +212,7 @@ export default function LoginPage() {
                             htmlType="submit"
                             block
                             loading={loading}
+                            size="large"
                         >
                             Зарегистрироваться
                         </Button>

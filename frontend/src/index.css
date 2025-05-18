@@ -11,3 +11,17 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+.auth-container {
+  max-width: 400px;
+  margin: 100px auto;
+  padding: 24px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.documents-container,
+.file-details-container,
+.about-container {
+  padding: 24px;
+}
