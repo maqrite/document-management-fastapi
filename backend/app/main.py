@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from app.database import create_db_and_tables
 from .routers import documents, users
 from app.config import settings
-
+from fastapi.middleware.cors import CORSMiddleware
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,6 +17,14 @@ async def lifespan(app: FastAPI):
     print("Application shutdown.")
 
 app = FastAPI(lifespan=lifespan, title="Система Документооборота")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # or ["*"] for dev
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(users.router)
 app.include_router(documents.router)
