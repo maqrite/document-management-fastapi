@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Form, Input, message, Tabs } from 'antd';
 import { useNavigate } from 'react-router-dom';
 
@@ -40,7 +40,7 @@ async function loginUser(username: string, password: string): Promise<AuthRespon
     }
 }
 
-async function registerUser(username: string, password: string): Promise<AuthResponse> {
+async function registerUser(email: string, password: string, username: string): Promise<AuthResponse> {
 
     console.log(`Registering user: ${username}`);
 
@@ -52,7 +52,7 @@ async function registerUser(username: string, password: string): Promise<AuthRes
         const requestBody = {
             username: username,
             password: password,
-            email: "email_".concat(username),
+            email: email,
         };
 
         console.log("Sending registration request:", requestBody);
@@ -88,107 +88,104 @@ export default function LoginPage() {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
 
+    useEffect(() => {
+        if (localStorage.getItem('access_token')) {
+            navigate('/documents');
+        }
+    }, [navigate]);
+
     const handleAuthSuccess = (token: string) => {
-        // Сохраняем токен (например, в localStorage или контексте приложения)
         localStorage.setItem('access_token', token);
-        // Перенаправляем пользователя
         navigate('/documents');
     };
 
-    const handleLogin = async (values: { username: string; password: string }) => {
+    const handleLogin = async (values: { email: string; password: string }) => {
         setLoading(true);
         try {
-            const { access_token, error } = await loginUser(values.username, values.password);
-
+            const { access_token, error } = await loginUser(values.email, values.password);
             if (access_token) {
-                message.success('Добро пожаловать!');
+                message.success('Вход выполнен успешно!');
                 handleAuthSuccess(access_token);
             } else {
-                switch (error) {
-                    case 'incorrect_password':
-                        message.error('Неверный пароль');
-                        form.setFields([{ name: 'password', errors: ['Неверный пароль'] }]);
-                        break;
-                    case 'user_not_found':
-                        message.error('Пользователь не найден');
-                        form.setFields([{ name: 'username', errors: ['Пользователь не найден'] }]);
-                        break;
-                    default:
-                        message.error('Ошибка при входе');
-                }
+                handleAuthError(error || 'unknown_error', 'login');
             }
-        } catch (err) {
+        } catch {
             message.error('Ошибка соединения с сервером');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleRegister = async (values: { username: string; password: string }) => {
+    const handleRegister = async (values: { email: string; password: string; name: string }) => {
         setLoading(true);
         try {
-            const { access_token, error } = await registerUser(values.username, values.password);
+            const { access_token, error } = await registerUser(
+                values.email,
+                values.password,
+                values.name
+            );
 
             if (access_token) {
-                message.success('Регистрация успешна!');
+                message.success('Регистрация прошла успешно!');
                 handleAuthSuccess(access_token);
             } else {
-                switch (error) {
-                    case 'username_exists':
-                        message.error('Пользователь уже существует');
-                        form.setFields([{ name: 'username', errors: ['Пользователь уже существует'] }]);
-                        break;
-                    case 'empty_password':
-                        message.error('Пароль не может быть пустым');
-                        form.setFields([{ name: 'password', errors: ['Пароль не может быть пустым'] }]);
-                        break;
-                    case 'invalid_username':
-                        message.error('Некорректное имя пользователя');
-                        form.setFields([{ name: 'username', errors: ['Некорректное имя пользователя'] }]);
-                        break;
-                    default:
-                        message.error('Ошибка при регистрации');
-                }
+                handleAuthError(error || 'unknown_error', 'register');
             }
-        } catch (err) {
+        } catch {
             message.error('Ошибка соединения с сервером');
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleAuthError = (error: string, mode: 'login' | 'register') => {
+        const fieldMap: Record<string, string> = {
+            'incorrect_password': 'password',
+            'user_not_found': 'email',
+            'email_exists': 'email',
+            'empty_password': 'password',
+            'invalid_email': 'email'
+        };
+
+        const messages: Record<string, string> = {
+            'incorrect_password': 'Неверный пароль',
+            'user_not_found': 'Пользователь с такой почтой не найден',
+            'email_exists': 'Пользователь с такой почтой уже существует',
+            'empty_password': 'Пароль не может быть пустым',
+            'invalid_email': 'Некорректный email'
+        };
+
+        if (fieldMap[error]) {
+            form.setFields([{
+                name: fieldMap[error],
+                errors: [messages[error] || 'Ошибка']
+            }]);
+        }
+        message.error(messages[error] || (mode === 'login' ? 'Ошибка при входе' : 'Ошибка при регистрации'));
     };
 
     return (
-        <div style={{
-            maxWidth: 400,
-            margin: '100px auto',
-            padding: 24,
-            boxShadow: '0 0 10px rgba(0,0,0,0.1)',
-            borderRadius: 8,
-            backgroundColor: '#fff'
-        }}>
+        <div className="auth-container">
             <Tabs
                 activeKey={activeTab}
                 onChange={setActiveTab}
                 centered
                 items={[
-                    {
-                        key: 'login',
-                        label: 'Вход',
-                    },
-                    {
-                        key: 'register',
-                        label: 'Регистрация',
-                    },
+                    { key: 'login', label: 'Вход' },
+                    { key: 'register', label: 'Регистрация' },
                 ]}
             />
 
             {activeTab === 'login' ? (
                 <Form form={form} onFinish={handleLogin}>
                     <Form.Item
-                        name="username"
-                        rules={[{ required: true, message: 'Введите логин' }]}
+                        name="email"
+                        rules={[
+                            { required: true, message: 'Введите email' },
+                            { type: 'email', message: 'Введите корректный email' }
+                        ]}
                     >
-                        <Input placeholder="Логин" size="large" />
+                        <Input placeholder="Email" size="large" />
                     </Form.Item>
                     <Form.Item
                         name="password"
@@ -211,14 +208,22 @@ export default function LoginPage() {
             ) : (
                 <Form form={form} onFinish={handleRegister}>
                     <Form.Item
-                        name="username"
+                        name="name"
                         rules={[
-                            { required: true, message: 'Введите логин' },
-                            { min: 3, message: 'Логин должен быть не менее 3 символов' },
-                            { max: 20, message: 'Логин должен быть не более 20 символов' }
+                            { required: true, message: 'Введите ваше имя' },
+                            { min: 2, message: 'Имя должно быть не менее 2 символов' }
                         ]}
                     >
-                        <Input placeholder="Логин" size="large" />
+                        <Input placeholder="Ваше имя" size="large" />
+                    </Form.Item>
+                    <Form.Item
+                        name="email"
+                        rules={[
+                            { required: true, message: 'Введите email' },
+                            { type: 'email', message: 'Введите корректный email' }
+                        ]}
+                    >
+                        <Input placeholder="Email" size="large" />
                     </Form.Item>
                     <Form.Item
                         name="password"
