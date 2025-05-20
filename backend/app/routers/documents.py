@@ -5,6 +5,7 @@ from pathlib import Path
 import shutil
 import uuid
 from .. import crud, models, schemas, dependencies, auth
+import datetime
 
 from app.config import settings
 UPLOAD_DIR = settings.UPLOAD_DIR
@@ -14,10 +15,6 @@ router = APIRouter(
     tags=["documents"],
     dependencies=[Depends(auth.get_current_active_user)]
 )
-
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-
 
 @router.post("/upload/", response_model=schemas.DocumentUploadResponse, status_code=status.HTTP_201_CREATED)
 async def upload_document(
@@ -52,12 +49,25 @@ async def upload_document(
     )
     db_document = crud.create_document(session=session, doc_in=doc_in, owner_id=current_user.id, file_path=file_path)
     session.refresh(db_document, attribute_names=["owner"])
-    
+
+    try:
+        crud.grant_permission(
+            session=session,
+            document_id=db_document.id,
+            owner_id=current_user.id,
+            user_id_to_grant=current_user.id,
+            can_view=True,
+            can_sign=True
+        )
+    except HTTPException as e:
+        print(f"Warning: Could not grant sign permission to owner on upload: {e.detail}")
+
     doc_read = schemas.DocumentRead.model_validate(db_document)
     return schemas.DocumentUploadResponse(
         message="Document uploaded successfully",
         document=doc_read
     )
+
 
 @router.get("/", response_model=schemas.DocumentListResponse)
 def read_documents_for_user(
@@ -152,3 +162,90 @@ def sign_document(
         session.refresh(signature.signer)
         
     return schemas.SignatureRead.model_validate(signature)
+
+@router.delete("/{document_id}/", status_code=status.HTTP_204_NO_CONTENT)
+def delete_document(
+    document_id: int,
+    current_user: models.User = Depends(auth.get_current_active_user),
+    session: Session = Depends(dependencies.get_session)
+):
+    doc_to_delete = crud.get_document(session=session, document_id=document_id, user_id=current_user.id)
+    if not doc_to_delete or doc_to_delete.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to delete this document or document not found."
+        )
+
+    success = crud.delete_document(session=session, document_id=document_id, owner_id=current_user.id)
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete document."
+        )
+    return {}
+
+@router.put("/{document_id}/", response_model=schemas.DocumentRead)
+async def update_document(
+    document_id: int,
+    title: Annotated[Optional[str], Form()] = None,
+    description: Annotated[Optional[str], Form()] = None,
+    file: Optional[UploadFile] = File(None),
+    current_user: models.User = Depends(auth.get_current_active_user),
+    session: Session = Depends(dependencies.get_session)
+):
+    db_doc = crud.get_document(session=session, document_id=document_id, user_id=current_user.id)
+    if not db_doc or db_doc.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to update this document or document not found."
+        )
+
+    new_file_path = None
+    if file:
+        if not file.filename:
+            raise HTTPException(status_code=400, detail="No file provided for update or filename is missing.")
+
+        file_extension = Path(file.filename).suffix
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        new_file_path = UPLOAD_DIR / unique_filename
+
+        try:
+            with new_file_path.open("wb") as buffer:
+                shutil.copyfileobj(file.file, buffer)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Could not save new file: {e}")
+        finally:
+            if file:
+                file.file.close()
+    
+    doc_update_data = {
+        "title": title if title is not None else db_doc.title,
+        "description": description if description is not None else db_doc.description,
+    }
+
+    if new_file_path:
+        doc_update_data["filename"] = new_file_path.name
+        doc_update_data["original_filename"] = file.filename
+        doc_update_data["content_type"] = file.content_type
+        doc_update_data["upload_date"] = datetime.utcnow()
+    else:
+        doc_update_data["filename"] = db_doc.filename
+        doc_update_data["original_filename"] = db_doc.original_filename
+        doc_update_data["content_type"] = db_doc.content_type
+        doc_update_data["upload_date"] = db_doc.upload_date
+
+
+    doc_update_model = models.DocumentCreate(**doc_update_data)
+
+
+    updated_doc = crud.update_document(
+        session=session,
+        document_id=document_id,
+        owner_id=current_user.id,
+        doc_update=doc_update_model,
+        new_file_path=new_file_path
+    )
+    if updated_doc is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update document.")
+
+    return schemas.DocumentRead.model_validate(updated_doc)

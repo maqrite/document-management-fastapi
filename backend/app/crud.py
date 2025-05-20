@@ -5,6 +5,7 @@ from pathlib import Path
 from app import models
 from .auth import get_password_hash, verify_password
 from app.config import settings
+import os
 
 UPLOAD_DIR = settings.UPLOAD_DIR
 
@@ -108,7 +109,8 @@ def grant_permission(session: Session, document_id: int, owner_id: int, user_id_
     if not doc or doc.owner_id != owner_id:
         return None
     if owner_id == user_id_to_grant:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Owner cannot grant permissions to themselves this way.")
+        pass
+
     target_user = session.get(models.User, user_id_to_grant)
     if not target_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {user_id_to_grant} not found.")
@@ -179,3 +181,52 @@ def create_signature(session: Session, document_id: int, signer_id: int, signatu
     if db_signature.signer:
         session.refresh(db_signature.signer)
     return db_signature
+
+def delete_document(session: Session, document_id: int, owner_id: int) -> bool:
+    doc = session.get(models.Document, document_id)
+    if not doc:
+        return False
+    if doc.owner_id != owner_id:
+        return False
+
+    file_path = UPLOAD_DIR / doc.filename
+    if file_path.exists():
+        os.remove(file_path)
+
+    session.exec(select(models.DocumentPermission).where(models.DocumentPermission.document_id == document_id)).all()
+    for perm in session.exec(select(models.DocumentPermission).where(models.DocumentPermission.document_id == document_id)).all():
+        session.delete(perm)
+    
+    for sig in session.exec(select(models.Signature).where(models.Signature.document_id == document_id)).all():
+        session.delete(sig)
+
+    session.delete(doc)
+    session.commit()
+    return True
+
+def update_document(session: Session, document_id: int, owner_id: int, doc_update: models.DocumentCreate, new_file_path: Optional[Path] = None) -> Optional[models.Document]:
+    doc = session.get(models.Document, document_id)
+    if not doc:
+        return None
+    if doc.owner_id != owner_id:
+        return None
+
+    update_data = doc_update.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(doc, key, value)
+
+    if new_file_path:
+        old_file_path = UPLOAD_DIR / doc.filename
+        if old_file_path.exists():
+            os.remove(old_file_path)
+        
+        doc.filename = new_file_path.name
+        doc.original_filename = doc_update.original_filename
+        doc.content_type = doc_update.content_type
+        doc.upload_date = doc_update.upload_date
+
+    session.add(doc)
+    session.commit()
+    session.refresh(doc)
+    session.refresh(doc, attribute_names=["owner"])
+    return doc
