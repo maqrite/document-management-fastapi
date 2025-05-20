@@ -19,7 +19,7 @@ export default function DocumentsPage() {
   const fetchDocuments = async () => {
     setLoading(true);
     try {
-      const files = await getFiles(token);
+      const files = await getFiles();
       setDocuments(files);
     } catch (err) {
       message.error('Ошибка при загрузке документов');
@@ -30,7 +30,7 @@ export default function DocumentsPage() {
 
   const handleUpload = async (file: File) => {
     try {
-      const success = await addFile(file, token);
+      const success = await addFile(file);
       if (success) {
         message.success('Файл успешно загружен');
         fetchDocuments();

@@ -15,14 +15,16 @@ export interface FileUser {
     access_level: 'view' | 'edit';
 }
 
-export async function getFiles(token: string): Promise<Document[]> {
+export async function getFiles(): Promise<Document[]> {
+    console.log(`Getting files for user`);
     try {
-        const response = await fetch("/api/documents", {
+        console.log("Sending getting files request");
+        const response = await fetch("http://localhost:8000/documents/getDocuments", {
             method: "GET",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-            },
+            headers: {},
         });
+
+        console.log("Response status:", response.status);
 
         if (!response.ok) return [];
         return await response.json();
@@ -32,18 +34,19 @@ export async function getFiles(token: string): Promise<Document[]> {
     }
 }
 
-export async function addFile(file: File, token: string): Promise<boolean> {
+export async function addFile(file: File): Promise<boolean> {
+    console.log(`Adding files for user`);
     try {
         const formData = new FormData();
         formData.append("file", file);
-
-        const response = await fetch("/api/documents", {
+        console.log("Sending add file request");
+        const response = await fetch("http://localhost:8000/documents/addDocument", {
             method: "POST",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-            },
+            headers: {},
             body: formData,
         });
+
+        console.log("Response status:", response.status);
 
         return response.ok;
     } catch (err) {
@@ -52,14 +55,16 @@ export async function addFile(file: File, token: string): Promise<boolean> {
     }
 }
 
-export async function getFile(fileId: string, token: string): Promise<Document | null> {
+export async function getFile(fileId: string): Promise<Document | null> {
+    console.log(`Getting file for user`);
     try {
-        const response = await fetch(`/api/documents/${fileId}`, {
+        console.log("Sending getting file request");
+        const response = await fetch(`http://localhost:8000/documents/getDocument/${fileId}`, {
             method: "GET",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-            },
+            headers: {},
         });
+
+        console.log("Response status:", response.status);
 
         if (!response.ok) return null;
         return await response.json();
@@ -69,14 +74,16 @@ export async function getFile(fileId: string, token: string): Promise<Document |
     }
 }
 
-export async function getFileUsers(fileId: string, token: string): Promise<FileUser[]> {
+export async function getFileUsers(fileId: string): Promise<FileUser[]> {
+    console.log(`Getting users for file`);
     try {
-        const response = await fetch(`/api/documents/${fileId}/users`, {
+        console.log("Sending getting users request");
+        const response = await fetch(`http://localhost:8000/documents/getUsers/${fileId}`, {
             method: "GET",
-            headers: {
-                "Authorization": `Bearer ${token}`,
-            },
+            headers: {},
         });
+
+        console.log("Response status:", response.status);
 
         if (!response.ok) return [];
         return await response.json();
@@ -89,17 +96,19 @@ export async function getFileUsers(fileId: string, token: string): Promise<FileU
 export async function addFileUser(
     fileId: string,
     email: string,
-    token: string
 ): Promise<boolean> {
+    console.log(`Adding users for file`);
     try {
-        const response = await fetch(`/api/documents/${fileId}/users`, {
+        console.log("Sending adding users request");
+        const response = await fetch(`http://localhost:8000/documents/addUser/${fileId}`, {
             method: "POST",
             headers: {
-                "Authorization": `Bearer ${token}`,
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({ email }),
         });
+
+        console.log("Response status:", response.status);
 
         return response.ok;
     } catch (err) {
