@@ -3,6 +3,7 @@ import { Button, Upload, Table, message, Space, Typography } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { getFiles, addFile, Document } from '../pages/documentService';
+import type { RcFile } from 'antd/es/upload/interface';
 
 const { Title } = Typography;
 
@@ -28,9 +29,9 @@ export default function DocumentsPage() {
     }
   };
 
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (name: string, file: File) => {
     try {
-      const success = await addFile(file);
+      const success = await addFile(token, name,file);
       if (success) {
         message.success('Файл успешно загружен');
         fetchDocuments();
@@ -83,7 +84,11 @@ export default function DocumentsPage() {
         <Upload
           accept="*"
           showUploadList={false}
-          customRequest={({ file }) => handleUpload(file as File)}
+          customRequest={({ file }) => {
+            // file is RcFile → has .name
+            const rcFile = file as RcFile;          // (optional) satisfy TypeScript
+            handleUpload(rcFile.name, rcFile);      // pass the name + the file
+          }}
         >
           <Button icon={<UploadOutlined />} type="primary">
             Загрузить документ

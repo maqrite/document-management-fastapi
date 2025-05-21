@@ -22,8 +22,8 @@ export default function FileDetailsPage() {
         setLoading(true);
         try {
             const [fileData, fileUsers] = await Promise.all([
-                getFile(fileId!),
-                getFileUsers(fileId!)
+                getFile(token, fileId!),
+                getFileUsers(token, fileId!)
             ]);
 
             if (fileData) {
@@ -45,7 +45,7 @@ export default function FileDetailsPage() {
 
         setLoading(true);
         try {
-            const success = await addFileUser(fileId!, newUserEmail);
+            const success = await addFileUser(token, fileId!, newUserEmail);
             if (success) {
                 message.success('Пользователь добавлен');
                 setNewUserEmail('');

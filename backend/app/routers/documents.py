@@ -16,7 +16,7 @@ router = APIRouter(
     dependencies=[Depends(auth.get_current_active_user)]
 )
 
-@router.post("/upload/", response_model=schemas.DocumentUploadResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/addDocument/", response_model=schemas.DocumentUploadResponse, status_code=status.HTTP_201_CREATED)
 async def upload_document(
     title: Annotated[str, Form()],
     description: Annotated[Optional[str], Form()] = None,
