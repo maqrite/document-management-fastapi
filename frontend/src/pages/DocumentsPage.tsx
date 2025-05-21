@@ -19,7 +19,7 @@ export default function DocumentsPage() {
   const fetchDocuments = async () => {
     setLoading(true);
     try {
-      const files = await getFiles();
+      const files = await getFiles(token);
       setDocuments(files);
     } catch (err) {
       message.error('Ошибка при загрузке документов');

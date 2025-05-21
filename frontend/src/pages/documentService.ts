@@ -15,13 +15,15 @@ export interface FileUser {
     access_level: 'view' | 'edit';
 }
 
-export async function getFiles(): Promise<Document[]> {
+export async function getFiles(token: string): Promise<Document[]> {
     console.log(`Getting files for user`);
     try {
         console.log("Sending getting files request");
         const response = await fetch("http://localhost:8000/documents/getDocuments", {
             method: "GET",
-            headers: {},
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
         });
 
         console.log("Response status:", response.status);
