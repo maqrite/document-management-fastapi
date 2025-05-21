@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'; // Добавляем импорт useEffect
+// ЗДЕСЬ НЕТ ПРОВЕРКИ АВТОРИЗАЦИИ
 import { Layout, Menu, Button } from 'antd';
 import { Link, Outlet, useNavigate } from 'react-router-dom';
 import { FileOutlined, InfoCircleOutlined, LogoutOutlined } from '@ant-design/icons';
@@ -8,20 +8,10 @@ const { Sider, Content } = Layout;
 export default function MainLayout() {
     const navigate = useNavigate();
 
-    // Добавляем объявление функции handleLogout
     const handleLogout = () => {
         localStorage.removeItem('access_token');
         navigate('/login');
     };
-
-    useEffect(() => {
-        const token = localStorage.getItem('access_token');
-        console.log('[MainLayout] Проверка токена:', token ? 'есть' : 'отсутствует');
-        if (!token) {
-            console.log('[MainLayout] Перенаправление на /login');
-            navigate('/login');
-        }
-    }, [navigate]);
 
     const items = [
         {

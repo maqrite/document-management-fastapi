@@ -13,21 +13,34 @@ export default function DocumentsPage() {
   const token = localStorage.getItem('access_token') || '';
 
   useEffect(() => {
+    console.log('[DocumentsPage] Компонент монтируется');
     fetchDocuments();
   }, []);
 
   const fetchDocuments = async () => {
+    console.log('[fetchDocuments] Начало загрузки документов');
     setLoading(true);
     try {
       const files = await getFiles(token);
+      console.log('[fetchDocuments] Получены файлы:', files);
+
+      if (!Array.isArray(files)) {
+        console.error('[fetchDocuments] Ошибка: files не является массивом');
+        setDocuments([]);
+        return;
+      }
+
       setDocuments(files);
     } catch (err) {
+      console.error('[fetchDocuments] Ошибка:', err);
       message.error('Ошибка при загрузке документов');
     } finally {
+      console.log('[fetchDocuments] Завершение загрузки');
       setLoading(false);
     }
   };
 
+  console.log('[DocumentsPage] Рендер, documents:', documents);
   const handleUpload = async (file: File) => {
     try {
       const success = await addFile(file, token);

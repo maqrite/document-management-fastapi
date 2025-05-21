@@ -16,6 +16,7 @@ export interface FileUser {
 }
 
 export async function getFiles(token: string): Promise<Document[]> {
+    console.log('[getFiles] Начало запроса, токен:', token ? 'есть' : 'отсутствует');
     try {
         const response = await fetch("/api/documents", {
             method: "GET",
@@ -24,10 +25,22 @@ export async function getFiles(token: string): Promise<Document[]> {
             },
         });
 
-        if (!response.ok) return [];
-        return await response.json();
+        console.log('[getFiles] Ответ сервера:', {
+            status: response.status,
+            statusText: response.statusText
+        });
+
+        const data = await response.json();
+        console.log('[getFiles] Полученные данные:', data);
+
+        if (!Array.isArray(data)) {
+            console.error('[getFiles] Ошибка: данные не являются массивом');
+            return [];
+        }
+
+        return data;
     } catch (err) {
-        console.error('Error fetching documents:', err);
+        console.error('[getFiles] Ошибка при запросе:', err);
         return [];
     }
 }
