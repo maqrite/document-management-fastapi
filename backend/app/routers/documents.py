@@ -69,7 +69,7 @@ async def upload_document(
     )
 
 
-@router.get("/", response_model=schemas.DocumentListResponse)
+@router.get("/getDocuments/", response_model=schemas.DocumentListResponse)
 def read_documents_for_user(
     current_user: models.User = Depends(auth.get_current_active_user),
     session: Session = Depends(dependencies.get_session)

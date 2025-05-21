@@ -27,7 +27,11 @@ export async function getFiles(): Promise<Document[]> {
         console.log("Response status:", response.status);
 
         if (!response.ok) return [];
-        return await response.json();
+        const data = await response.json();
+
+        console.log("Response data:", data);
+
+        return data
     } catch (err) {
         console.error('Error fetching documents:', err);
         return [];
