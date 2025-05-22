@@ -257,8 +257,8 @@ def get_users_with_document_access(session: Session, document_id: int) -> List[s
                     user_id=user.id,
                     email=user.email,
                     full_name=user.full_name,
-                    can_view=perm.can_view, #
-                    can_sign=perm.can_sign  #
+                    can_view=perm.can_view,
+                    can_sign=perm.can_sign 
                 )
             )
         else:
