@@ -1,62 +1,66 @@
 // сервисный файл для работы с API документов
 export interface Document {
-    id: string;
-    name: string;
-    size: number;
-    uploaded_at: string;
-    owner_email: string;
-    owner_name: string;
+    id: number;
+    original_filename: string;
+    upload_date: string;
+    size?: number;
+    owner: {
+        email: string;
+        full_name: string | null;
+        id: number;
+        is_active: boolean;
+    };
 }
 
 export interface FileUser {
-    id: string;
+    user_id: string;
     email: string;
-    name: string;
-    access_level: 'view' | 'edit';
+    full_name: string;
+    can_view: boolean;
+    can_sign: boolean;
 }
 
 export async function getFiles(token: string): Promise<Document[]> {
-    console.log('[getFiles] Начало запроса, токен:', token ? 'есть' : 'отсутствует');
+    console.log(`Getting files for user`);
     try {
-        const response = await fetch("/api/documents", {
+        console.log("Sending getting files request");
+        const response = await fetch("http://localhost:8000/documents/getDocuments", {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${token}`,
             },
         });
 
-        console.log('[getFiles] Ответ сервера:', {
-            status: response.status,
-            statusText: response.statusText
-        });
+        console.log("Response status:", response.status);
 
+        if (!response.ok) return [];
         const data = await response.json();
-        console.log('[getFiles] Полученные данные:', data);
 
-        if (!Array.isArray(data)) {
-            console.error('[getFiles] Ошибка: данные не являются массивом');
-            return [];
-        }
+        console.log("Response data:", data);
 
-        return data;
+        return Array.isArray(data.documents) ? data.documents : [];
     } catch (err) {
-        console.error('[getFiles] Ошибка при запросе:', err);
+        console.error('Error fetching documents:', err);
         return [];
     }
 }
 
-export async function addFile(file: File, token: string): Promise<boolean> {
+export async function addFile(token: string, name: string, file: File): Promise<boolean> {
+    console.log(`Adding files for user`);
     try {
         const formData = new FormData();
+        formData.append("title", name);
         formData.append("file", file);
-
-        const response = await fetch("/api/documents", {
+        console.log("Sending add file request");
+        const response = await fetch("http://localhost:8000/documents/addDocument/", {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${token}`,
             },
             body: formData,
         });
+
+        console.log("Response status:", response.status);
 
         return response.ok;
     } catch (err) {
@@ -65,14 +69,18 @@ export async function addFile(file: File, token: string): Promise<boolean> {
     }
 }
 
-export async function getFile(fileId: string, token: string): Promise<Document | null> {
+export async function getFile(token: string, fileId: string): Promise<Document | null> {
+    console.log(`Getting file for user`);
     try {
-        const response = await fetch(`/api/documents/${fileId}`, {
+        console.log("Sending getting file request");
+        const response = await fetch(`http://localhost:8000/documents/getDocument/${fileId}`, {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${token}`,
             },
         });
+
+        console.log("Response status:", response.status);
 
         if (!response.ok) return null;
         return await response.json();
@@ -82,14 +90,18 @@ export async function getFile(fileId: string, token: string): Promise<Document |
     }
 }
 
-export async function getFileUsers(fileId: string, token: string): Promise<FileUser[]> {
+export async function getFileUsers(token: string, fileId: string): Promise<FileUser[]> {
+    console.log(`Getting users for file`);
     try {
-        const response = await fetch(`/api/documents/${fileId}/users`, {
+        console.log("Sending getting users request");
+        const response = await fetch(`http://localhost:8000/documents/getUsers/${fileId}`, {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${token}`,
             },
         });
+
+        console.log("Response status:", response.status);
 
         if (!response.ok) return [];
         return await response.json();
@@ -100,19 +112,22 @@ export async function getFileUsers(fileId: string, token: string): Promise<FileU
 }
 
 export async function addFileUser(
+    token: string,
     fileId: string,
     email: string,
-    token: string
 ): Promise<boolean> {
+    console.log(`Adding users for file`);
     try {
-        const response = await fetch(`/api/documents/${fileId}/users`, {
+        console.log("Sending adding users request");
+        const response = await fetch(`http://localhost:8000/documents/addUser/${fileId}`, {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${token}`,
-                "Content-Type": "application/json",
             },
             body: JSON.stringify({ email }),
         });
+
+        console.log("Response status:", response.status);
 
         return response.ok;
     } catch (err) {
