@@ -250,7 +250,7 @@ async def update_document(
 
     return schemas.DocumentRead.model_validate(updated_doc)
 
-@router.get("/{document_id}/access-list/",
+@router.get("/getUsers/{document_id}/",
             response_model=List[schemas.UserDocumentAccess],
             summary="get a list of users with access to a document")
 def get_document_access_list(
@@ -265,5 +265,5 @@ def get_document_access_list(
             detail="Документ не найден или у вас нет к нему доступа."
         )
     access_list = crud.get_users_with_document_access(session=session, document_id=document_id)
-    
+
     return access_list

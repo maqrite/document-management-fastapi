@@ -13,10 +13,11 @@ export interface Document {
   }
 
 export interface FileUser {
-    id: string;
+    user_id: string;
     email: string;
-    name: string;
-    access_level: 'view' | 'edit';
+    full_name: string;
+    can_view: boolean;
+    can_sign: boolean;
 }
 
 export async function getFiles(token: string): Promise<Document[]> {
@@ -93,7 +94,7 @@ export async function getFileUsers(token: string, fileId: string): Promise<FileU
     console.log(`Getting users for file`);
     try {
         console.log("Sending getting users request");
-        const response = await fetch(`http://localhost:8000/documents/getDocument404/${fileId}`, {
+        const response = await fetch(`http://localhost:8000/documents/getUsers/${fileId}`, {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${token}`,
