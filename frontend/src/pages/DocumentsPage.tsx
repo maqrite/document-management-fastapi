@@ -3,6 +3,7 @@ import { Button, Upload, Table, message, Space, Typography } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { getFiles, addFile, Document } from '../pages/documentService';
+import type { RcFile } from 'antd/es/upload/interface';
 
 const { Title } = Typography;
 
@@ -13,37 +14,35 @@ export default function DocumentsPage() {
   const token = localStorage.getItem('access_token') || '';
 
   useEffect(() => {
-    console.log('[DocumentsPage] Компонент монтируется');
     fetchDocuments();
   }, []);
 
   const fetchDocuments = async () => {
-    console.log('[fetchDocuments] Начало загрузки документов');
     setLoading(true);
     try {
-      const files = await getFiles(token);
-      console.log('[fetchDocuments] Получены файлы:', files);
-
-      if (!Array.isArray(files)) {
-        console.error('[fetchDocuments] Ошибка: files не является массивом');
-        setDocuments([]);
-        return;
-      }
-
+      const rawFiles = await getFiles(token);
+      const files = rawFiles.map((file: any) => ({
+        id: file.id,
+        original_filename: file.title || file.original_filename,
+        size: file.size || 0,
+        upload_date: file.upload_date,
+        owner: {
+          full_name: file.owner?.full_name || 'Без имени',
+          email: file.owner?.email || '',
+        },
+      }));
       setDocuments(files);
     } catch (err) {
-      console.error('[fetchDocuments] Ошибка:', err);
+      console.error('Error fetching documents:', err);
       message.error('Ошибка при загрузке документов');
     } finally {
-      console.log('[fetchDocuments] Завершение загрузки');
       setLoading(false);
     }
   };
 
-  console.log('[DocumentsPage] Рендер, documents:', documents);
-  const handleUpload = async (file: File) => {
+  const handleUpload = async (name: string, file: File) => {
     try {
-      const success = await addFile(file, token);
+      const success = await addFile(token, name, file);
       if (success) {
         message.success('Файл успешно загружен');
         fetchDocuments();
@@ -58,7 +57,7 @@ export default function DocumentsPage() {
   const columns = [
     {
       title: 'Название',
-      dataIndex: 'name',
+      dataIndex: 'original_filename',
       key: 'name',
       render: (name: string, record: Document) => (
         <Button
@@ -73,18 +72,21 @@ export default function DocumentsPage() {
       title: 'Размер (КБ)',
       dataIndex: 'size',
       key: 'size',
-      render: (size: number) => (size / 1024).toFixed(2),
+      render: (size?: number) => size ? (size / 1024).toFixed(2) : '—',
     },
     {
       title: 'Дата загрузки',
-      dataIndex: 'uploaded_at',
-      key: 'uploaded_at',
+      dataIndex: 'upload_date',
+      key: 'upload_date',
     },
     {
       title: 'Владелец',
-      dataIndex: 'owner_name',
-      key: 'owner_name',
-      render: (name: string, record: Document) => `${name} (${record.owner_email})`
+      key: 'owner',
+      render: (_: any, record: Document) => {
+        const name = record.owner?.full_name || '—';
+        const email = record.owner?.email || '—';
+        return `${name} (${email})`;
+      }
     },
   ];
 
@@ -96,7 +98,10 @@ export default function DocumentsPage() {
         <Upload
           accept="*"
           showUploadList={false}
-          customRequest={({ file }) => handleUpload(file as File)}
+          customRequest={({ file }) => {
+            const rcFile = file as RcFile;
+            handleUpload(rcFile.name, rcFile);
+          }}
         >
           <Button icon={<UploadOutlined />} type="primary">
             Загрузить документ
