@@ -82,7 +82,7 @@ def read_documents_for_user(
     return schemas.DocumentListResponse(documents=docs_read_list)
 
 
-@router.get("/{document_id}/", response_model=schemas.DocumentDetailResponse)
+@router.get("/getDocument/{document_id}/", response_model=schemas.DocumentDetailResponse)
 def read_document_details(
     document_id: int,
     current_user: models.User = Depends(auth.get_current_active_user),
@@ -116,7 +116,7 @@ async def download_document(
     )
 
 
-@router.post("/{document_id}/share/", response_model=schemas.DocumentPermissionRead)
+@router.post("/addUser/{document_id}/", response_model=schemas.DocumentPermissionRead)
 def share_document(
     document_id: int,
     share_request: schemas.ShareDocumentRequest,
@@ -133,7 +133,7 @@ def share_document(
     )
     if permission is None:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Could not grant permission. User may not be owner or document/target user not found.")
-    
+
     session.refresh(permission, attribute_names=["user_obj"])
     if permission.user_obj:
          session.refresh(permission.user_obj)
@@ -156,11 +156,11 @@ def sign_document(
     )
     if signature is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to create signature.")
-    
+
     session.refresh(signature, attribute_names=["signer"])
     if signature.signer:
         session.refresh(signature.signer)
-        
+
     return schemas.SignatureRead.model_validate(signature)
 
 @router.delete("/{document_id}/", status_code=status.HTTP_204_NO_CONTENT)
@@ -217,7 +217,7 @@ async def update_document(
         finally:
             if file:
                 file.file.close()
-    
+
     doc_update_data = {
         "title": title if title is not None else db_doc.title,
         "description": description if description is not None else db_doc.description,

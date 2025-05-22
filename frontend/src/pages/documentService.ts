@@ -93,7 +93,7 @@ export async function getFileUsers(token: string, fileId: string): Promise<FileU
     console.log(`Getting users for file`);
     try {
         console.log("Sending getting users request");
-        const response = await fetch(`http://localhost:8000/documents/getUsers/${fileId}`, {
+        const response = await fetch(`http://localhost:8000/documents/getDocument404/${fileId}`, {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${token}`,

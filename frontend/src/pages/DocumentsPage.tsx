@@ -22,7 +22,7 @@ export default function DocumentsPage() {
     try {
       const rawFiles = await getFiles(token);
       console.log('Raw files from backend:', rawFiles);
-  
+
       const files = rawFiles.map((file: any) => {
         const mapped = {
           id: file.id,
@@ -35,7 +35,7 @@ export default function DocumentsPage() {
         console.log('Mapped file:', mapped);
         return mapped;
       });
-  
+
       setDocuments(rawFiles);
       console.log('Set documents state:', files);
     } catch (err) {
