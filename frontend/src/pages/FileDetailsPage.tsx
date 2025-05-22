@@ -23,7 +23,7 @@ export default function FileDetailsPage() {
         try {
             const [fileData, fileUsers] = await Promise.all([
                 getFile(token, fileId!),
-                getFileUsers(token,fileId!)
+                getFileUsers(token, fileId!)
             ]);
 
             if (fileData) {
@@ -96,9 +96,6 @@ export default function FileDetailsPage() {
                     <div>
                         <Text strong>Дата загрузки:</Text> {new Date(file.upload_date).toLocaleString()}
                     </div>
-                    <div>
-                        {file.size ? `${(file.size / 1024).toFixed(2)} КБ` : '—'}
-                    </div>
 
                     <Title level={4}>Пользователи с доступом</Title>
                     <Table
@@ -127,4 +124,3 @@ export default function FileDetailsPage() {
             </Card>
         </div>
     );
-}

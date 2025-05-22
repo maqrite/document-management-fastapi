@@ -3,14 +3,13 @@ export interface Document {
     id: number;
     original_filename: string;
     upload_date: string;
-    size?: number;
     owner: {
-      email: string;
-      full_name: string | null;
-      id: number;
-      is_active: boolean;
+        email: string;
+        full_name: string | null;
+        id: number;
+        is_active: boolean;
     };
-  }
+}
 
 export interface FileUser {
     user_id: string;
