@@ -46,11 +46,9 @@ async function registerUser(email: string, password: string, username: string): 
 
     try {
         const body = new URLSearchParams();
-        body.append("username", username);
-        body.append("password", password);
 
         const requestBody = {
-            username: username,
+            full_name: username,
             password: password,
             email: email,
         };
