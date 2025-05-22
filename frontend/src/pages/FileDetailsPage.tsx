@@ -23,7 +23,7 @@ export default function FileDetailsPage() {
         try {
             const [fileData, fileUsers] = await Promise.all([
                 getFile(token, fileId!),
-                getFileUsers(token, fileId!)
+                getFileUsers(token,fileId!)
             ]);
 
             if (fileData) {
@@ -87,16 +87,16 @@ export default function FileDetailsPage() {
                 Назад к документам
             </Button>
 
-            <Card title={<Title level={3}>{file.name}</Title>} loading={loading}>
+            <Card title={<Title level={3}>{file.original_filename}</Title>} loading={loading}>
                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
                     <div>
-                        <Text strong>Владелец:</Text> {file.owner_name} ({file.owner_email})
+                        <Text strong>Владелец:</Text> {file.owner.full_name} ({file.owner.email})
                     </div>
                     <div>
-                        <Text strong>Дата загрузки:</Text> {new Date(file.uploaded_at).toLocaleString()}
+                        <Text strong>Дата загрузки:</Text> {new Date(file.upload_date).toLocaleString()}
                     </div>
                     <div>
-                        <Text strong>Размер:</Text> {(file.size / 1024).toFixed(2)} КБ
+                        {file.size ? `${(file.size / 1024).toFixed(2)} КБ` : '—'}
                     </div>
 
                     <Title level={4}>Пользователи с доступом</Title>

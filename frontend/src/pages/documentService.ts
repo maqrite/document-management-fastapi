@@ -1,12 +1,16 @@
 // сервисный файл для работы с API документов
 export interface Document {
-    id: string;
-    name: string;
-    size: number;
-    uploaded_at: string;
-    owner_email: string;
-    owner_name: string;
-}
+    id: number;
+    original_filename: string;
+    upload_date: string;
+    size?: number;
+    owner: {
+      email: string;
+      full_name: string | null;
+      id: number;
+      is_active: boolean;
+    };
+  }
 
 export interface FileUser {
     id: string;
@@ -33,7 +37,7 @@ export async function getFiles(token: string): Promise<Document[]> {
 
         console.log("Response data:", data);
 
-        return Array. isArray(data) ? data : [];
+        return Array.isArray(data.documents) ? data.documents : [];
     } catch (err) {
         console.error('Error fetching documents:', err);
         return [];

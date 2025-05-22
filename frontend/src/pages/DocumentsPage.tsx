@@ -20,14 +20,32 @@ export default function DocumentsPage() {
   const fetchDocuments = async () => {
     setLoading(true);
     try {
-      const files = await getFiles(token);
-      setDocuments(files);
+      const rawFiles = await getFiles(token);
+      console.log('Raw files from backend:', rawFiles);
+  
+      const files = rawFiles.map((file: any) => {
+        const mapped = {
+          id: file.id,
+          name: file.title || file.original_filename,
+          size: 0, // Placeholder
+          uploaded_at: file.upload_date,
+          owner_name: file.owner?.full_name || 'Без имени',
+          owner_email: file.owner?.email || '',
+        };
+        console.log('Mapped file:', mapped);
+        return mapped;
+      });
+  
+      setDocuments(rawFiles);
+      console.log('Set documents state:', files);
     } catch (err) {
+      console.error('Error fetching documents:', err);
       message.error('Ошибка при загрузке документов');
     } finally {
       setLoading(false);
     }
   };
+  
 
   const handleUpload = async (name: string, file: File) => {
     try {
@@ -46,7 +64,7 @@ export default function DocumentsPage() {
   const columns = [
     {
       title: 'Название',
-      dataIndex: 'name',
+      dataIndex: 'original_filename',
       key: 'name',
       render: (name: string, record: Document) => (
         <Button
@@ -61,18 +79,22 @@ export default function DocumentsPage() {
       title: 'Размер (КБ)',
       dataIndex: 'size',
       key: 'size',
-      render: (size: number) => (size / 1024).toFixed(2),
+      render: (size?: number) => size ? (size / 1024).toFixed(2) : '—',
     },
     {
       title: 'Дата загрузки',
-      dataIndex: 'uploaded_at',
+      dataIndex: 'upload_date',
       key: 'uploaded_at',
     },
     {
       title: 'Владелец',
-      dataIndex: 'owner_name',
-      key: 'owner_name',
-      render: (name: string, record: Document) => `${name} (${record.owner_email})`
+      dataIndex: 'owner',
+      key: 'owner',
+      render: (_: any, record: Document) => {
+        const name = record.owner?.full_name ?? '—';
+        const email = record.owner?.email ?? '—';
+        return `${name} (${email})`;
+      }
     },
   ];
 
