@@ -30,3 +30,10 @@ class TokenWithUser(SQLModel):
     access_token: str
     token_type: str
     user: UserRead
+
+class UserDocumentAccess(SQLModel):
+    user_id: int
+    email: str
+    full_name: Optional[str]
+    can_view: bool
+    can_sign: bool

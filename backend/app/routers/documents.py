@@ -249,3 +249,21 @@ async def update_document(
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update document.")
 
     return schemas.DocumentRead.model_validate(updated_doc)
+
+@router.get("/{document_id}/access-list/",
+            response_model=List[schemas.UserDocumentAccess],
+            summary="get a list of users with access to a document")
+def get_document_access_list(
+    document_id: int,
+    current_user: models.User = Depends(auth.get_current_active_user),
+    session: Session = Depends(dependencies.get_session)
+):
+    document_check = crud.get_document(session=session, document_id=document_id, user_id=current_user.id) #
+    if not document_check:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Документ не найден или у вас нет к нему доступа."
+        )
+    access_list = crud.get_users_with_document_access(session=session, document_id=document_id)
+    
+    return access_list

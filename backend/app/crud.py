@@ -6,6 +6,7 @@ from app import models
 from .auth import get_password_hash, verify_password
 from app.config import settings
 import os
+from app import schemas
 
 UPLOAD_DIR = settings.UPLOAD_DIR
 
@@ -230,3 +231,37 @@ def update_document(session: Session, document_id: int, owner_id: int, doc_updat
     session.refresh(doc)
     session.refresh(doc, attribute_names=["owner"])
     return doc
+
+def get_users_with_document_access(session: Session, document_id: int) -> List[schemas.UserDocumentAccess]:
+    document = session.get(models.Document, document_id)
+    if not document:
+        return []
+
+    user_access_list: List[schemas.UserDocumentAccess] = []
+
+    permissions_query = (
+        select(models.DocumentPermission)
+        .where(models.DocumentPermission.document_id == document_id)
+    )
+    doc_permissions = session.exec(permissions_query).all()
+
+    for perm in doc_permissions:
+        user = perm.user_obj
+        
+        if not user:
+            user = session.get(models.User, perm.user_id) #
+
+        if user:
+            user_access_list.append(
+                schemas.UserDocumentAccess(
+                    user_id=user.id,
+                    email=user.email,
+                    full_name=user.full_name,
+                    can_view=perm.can_view, #
+                    can_sign=perm.can_sign  #
+                )
+            )
+        else:
+            print(f"Warning: User with ID {perm.user_id} not found for permission ID {perm.id}")
+            
+    return user_access_list
