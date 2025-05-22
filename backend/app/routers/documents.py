@@ -94,7 +94,7 @@ def read_document_details(
     return schemas.DocumentDetailResponse.model_validate(db_doc)
 
 
-@router.get("/{document_id}/download/")
+@router.get("/downloadDocument/{document_id}/")
 async def download_document(
     document_id: int,
     current_user: models.User = Depends(auth.get_current_active_user),
@@ -141,7 +141,7 @@ def share_document(
     return schemas.DocumentPermissionRead.model_validate(permission)
 
 
-@router.post("/{document_id}/sign/", response_model=schemas.SignatureRead)
+@router.post("/signDocument/{document_id}/", response_model=schemas.SignatureRead)
 def sign_document(
     document_id: int,
     signature_in: models.SignatureCreate,
@@ -163,7 +163,7 @@ def sign_document(
 
     return schemas.SignatureRead.model_validate(signature)
 
-@router.delete("/{document_id}/", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/deleteDocument/{document_id}/", status_code=status.HTTP_204_NO_CONTENT)
 def delete_document(
     document_id: int,
     current_user: models.User = Depends(auth.get_current_active_user),
@@ -184,7 +184,7 @@ def delete_document(
         )
     return {}
 
-@router.put("/{document_id}/", response_model=schemas.DocumentRead)
+@router.put("/replaceDocument/{document_id}/", response_model=schemas.DocumentRead)
 async def update_document(
     document_id: int,
     title: Annotated[Optional[str], Form()] = None,

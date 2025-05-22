@@ -68,8 +68,9 @@ export default function FileDetailsPage() {
         },
         {
             title: 'Имя',
-            dataIndex: 'name',
+            dataIndex: 'full_name',
             key: 'name',
+            render: (name: string | null) => name || '—',
         },
         {
             title: 'Уровень доступа',
