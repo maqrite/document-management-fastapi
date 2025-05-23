@@ -60,7 +60,7 @@ class DocumentPermission(DocumentPermissionBase, table=True):
     user_obj: User = Relationship(back_populates="permissions_granted")
 
 class DocumentPermissionCreate(SQLModel):
-    user_id_to_grant: int
+    email: str
     can_view: bool = True
     can_sign: bool = False
 

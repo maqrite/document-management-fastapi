@@ -105,17 +105,23 @@ def get_document_with_details(session: Session, document_id: int, user_id: int) 
             session.refresh(sig.signer)
     return doc
 
-def grant_permission(session: Session, document_id: int, owner_id: int, user_id_to_grant: int, can_view: bool, can_sign: bool) -> Optional[models.DocumentPermission]:
+def grant_permission(
+    session: Session,
+    document_id: int,
+    owner_id: int,
+    user_id_to_grant: int,
+    can_view: bool,
+    can_sign: bool
+) -> Optional[models.DocumentPermission]:
     doc = session.get(models.Document, document_id)
     if not doc or doc.owner_id != owner_id:
         return None
-    if owner_id == user_id_to_grant:
-        pass
-
     target_user = session.get(models.User, user_id_to_grant)
     if not target_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"User with id {user_id_to_grant} not found.")
-    
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Пользователь с ID {user_id_to_grant} не найден"
+        )
     existing_permission = session.exec(
         select(models.DocumentPermission).where(
             models.DocumentPermission.document_id == document_id,
@@ -128,19 +134,16 @@ def grant_permission(session: Session, document_id: int, owner_id: int, user_id_
         existing_permission.can_sign = can_sign
         session.add(existing_permission)
     else:
-        db_permission = models.DocumentPermission(
+        existing_permission = models.DocumentPermission(
             document_id=document_id,
             user_id=user_id_to_grant,
             can_view=can_view,
             can_sign=can_sign
         )
-        session.add(db_permission)
-        existing_permission = db_permission
+        session.add(existing_permission)
     
     session.commit()
     session.refresh(existing_permission)
-    if existing_permission.user_obj:
-        session.refresh(existing_permission.user_obj)
     return existing_permission
 
 def create_signature(session: Session, document_id: int, signer_id: int, signature_in: models.SignatureCreate) -> Optional[models.Signature]:

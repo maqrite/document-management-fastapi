@@ -15,7 +15,7 @@ class DocumentUploadResponse(SQLModel):
     document: DocumentRead
 
 class ShareDocumentRequest(SQLModel):
-    user_id_to_grant: int
+    email: str
     can_view: bool = True
     can_sign: bool = False
 

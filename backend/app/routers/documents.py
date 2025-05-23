@@ -123,16 +123,26 @@ def share_document(
     current_user: models.User = Depends(auth.get_current_active_user),
     session: Session = Depends(dependencies.get_session)
 ):
+    target_user = crud.get_user_by_email(session=session, email=share_request.email)
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User with this email not found"
+        )
+
     permission = crud.grant_permission(
         session=session,
         document_id=document_id,
         owner_id=current_user.id,
-        user_id_to_grant=share_request.user_id_to_grant,
+        user_id_to_grant=target_user.id,
         can_view=share_request.can_view,
         can_sign=share_request.can_sign
     )
     if permission is None:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Could not grant permission. User may not be owner or document/target user not found.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Could not grant permission. User may not be owner or document not found."
+        )
 
     session.refresh(permission, attribute_names=["user_obj"])
     if permission.user_obj:
