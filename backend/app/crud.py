@@ -214,6 +214,18 @@ def update_document(session: Session, document_id: int, owner_id: int, doc_updat
         return None
     if doc.owner_id != owner_id:
         return None
+    
+    if new_file_path:
+        signatures = session.exec(
+            select(models.Signature).where(
+                models.Signature.document_id == document_id
+            )
+        ).all()
+        
+    for signature in signatures:
+        session.delete(signature)
+        
+    session.commit()
 
     update_data = doc_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():

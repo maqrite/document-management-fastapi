@@ -237,7 +237,7 @@ async def update_document(
         doc_update_data["filename"] = new_file_path.name
         doc_update_data["original_filename"] = file.filename
         doc_update_data["content_type"] = file.content_type
-        doc_update_data["upload_date"] = datetime.utcnow()
+        doc_update_data["upload_date"] = datetime.datetime.utcnow()
     else:
         doc_update_data["filename"] = db_doc.filename
         doc_update_data["original_filename"] = db_doc.original_filename
