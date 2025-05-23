@@ -76,7 +76,7 @@ export default function FileDetailsPage() {
             title: 'Уровень доступа',
             dataIndex: 'access_level',
             key: 'access_level',
-            render: (level: string) => level === 'edit' ? 'Редактирование' : 'Просмотр'
+            render: (level: string) => level === 'edit' ? 'Редактирование' : 'Просмотр и подпись'
         },
     ];
 

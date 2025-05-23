@@ -115,15 +115,22 @@ export async function addFileUser(
     fileId: string,
     email: string,
 ): Promise<boolean> {
-    console.log(`Adding users for file`);
+    console.log(`Adding user for file`);
     try {
         console.log("Sending adding users request");
+        const requestBody = ({
+            email: email,
+            can_view: true,
+            can_sign: true,
+        })
+        console.log("Request contents:", requestBody);
         const response = await fetch(`http://localhost:8000/documents/addUser/${fileId}`, {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json",
             },
-            body: JSON.stringify({ email }),
+            body: JSON.stringify(requestBody),
         });
 
         console.log("Response status:", response.status);
