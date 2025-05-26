@@ -3,6 +3,7 @@ export interface Document {
     id: number;
     original_filename: string;
     upload_date: string;
+    is_signed: boolean;
     owner: {
         email: string;
         full_name: string | null;
@@ -20,9 +21,7 @@ export interface FileUser {
 }
 
 export async function getFiles(token: string): Promise<Document[]> {
-    console.log(`Getting files for user`);
     try {
-        console.log("Sending getting files request");
         const response = await fetch("http://localhost:8000/documents/getDocuments", {
             method: "GET",
             headers: {
@@ -30,13 +29,8 @@ export async function getFiles(token: string): Promise<Document[]> {
             },
         });
 
-        console.log("Response status:", response.status);
-
         if (!response.ok) return [];
         const data = await response.json();
-
-        console.log("Response data:", data);
-
         return Array.isArray(data.documents) ? data.documents : [];
     } catch (err) {
         console.error('Error fetching documents:', err);
@@ -45,12 +39,10 @@ export async function getFiles(token: string): Promise<Document[]> {
 }
 
 export async function addFile(token: string, name: string, file: File): Promise<boolean> {
-    console.log(`Adding files for user`);
     try {
         const formData = new FormData();
         formData.append("title", name);
         formData.append("file", file);
-        console.log("Sending add file request");
         const response = await fetch("http://localhost:8000/documents/addDocument/", {
             method: "POST",
             headers: {
@@ -58,9 +50,6 @@ export async function addFile(token: string, name: string, file: File): Promise<
             },
             body: formData,
         });
-
-        console.log("Response status:", response.status);
-
         return response.ok;
     } catch (err) {
         console.error('Error uploading file:', err);
@@ -69,17 +58,13 @@ export async function addFile(token: string, name: string, file: File): Promise<
 }
 
 export async function getFile(token: string, fileId: string): Promise<Document | null> {
-    console.log(`Getting file for user`);
     try {
-        console.log("Sending getting file request");
         const response = await fetch(`http://localhost:8000/documents/getDocument/${fileId}`, {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${token}`,
             },
         });
-
-        console.log("Response status:", response.status);
 
         if (!response.ok) return null;
         return await response.json();
@@ -90,17 +75,13 @@ export async function getFile(token: string, fileId: string): Promise<Document |
 }
 
 export async function getFileUsers(token: string, fileId: string): Promise<FileUser[]> {
-    console.log(`Getting users for file`);
     try {
-        console.log("Sending getting users request");
         const response = await fetch(`http://localhost:8000/documents/getUsers/${fileId}`, {
             method: "GET",
             headers: {
                 "Authorization": `Bearer ${token}`,
             },
         });
-
-        console.log("Response status:", response.status);
 
         if (!response.ok) return [];
         return await response.json();
@@ -115,15 +96,12 @@ export async function addFileUser(
     fileId: string,
     email: string,
 ): Promise<boolean> {
-    console.log(`Adding user for file`);
     try {
-        console.log("Sending adding users request");
-        const requestBody = ({
+        const requestBody = {
             email: email,
             can_view: true,
             can_sign: true,
-        })
-        console.log("Request contents:", requestBody);
+        };
         const response = await fetch(`http://localhost:8000/documents/addUser/${fileId}`, {
             method: "POST",
             headers: {
@@ -132,12 +110,58 @@ export async function addFileUser(
             },
             body: JSON.stringify(requestBody),
         });
-
-        console.log("Response status:", response.status);
-
         return response.ok;
     } catch (err) {
         console.error('Error adding user to file:', err);
+        return false;
+    }
+}
+
+export async function deleteFile(token: string, fileId: string): Promise<boolean> {
+    try {
+        const response = await fetch(`http://localhost:8000/documents/deleteDocument/${fileId}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+        });
+        return response.ok;
+    } catch (err) {
+        console.error('Error deleting file:', err);
+        return false;
+    }
+}
+
+export async function replaceFile(token: string, fileId: string, file: File): Promise<boolean> {
+    try {
+        const formData = new FormData();
+        formData.append("file", file);
+        
+        const response = await fetch(`http://localhost:8000/documents/replaceDocument/${fileId}`, {
+            method: "PUT",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+            body: formData,
+        });
+        return response.ok;
+    } catch (err) {
+        console.error('Error replacing file:', err);
+        return false;
+    }
+}
+
+export async function signFile(token: string, fileId: string): Promise<boolean> {
+    try {
+        const response = await fetch(`http://localhost:8000/documents/signDocument/${fileId}`, {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${token}`,
+            },
+        });
+        return response.ok;
+    } catch (err) {
+        console.error('Error signing file:', err);
         return false;
     }
 }

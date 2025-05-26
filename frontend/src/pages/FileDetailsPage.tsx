@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Table, Space, Typography, Card, Input, message } from 'antd';
-import { getFile, getFileUsers, addFileUser, Document, FileUser } from '../pages/documentService';
+import { Button, Table, Space, Typography, Card, Input, message, Tag, Upload } from 'antd';
+import { UploadOutlined } from '@ant-design/icons';
+import { getFile, getFileUsers, addFileUser, Document, FileUser, deleteFile, replaceFile, signFile } from './documentService';
+import type { RcFile } from 'antd/es/upload/interface';
 
 const { Title, Text } = Typography;
 
@@ -11,6 +13,7 @@ export default function FileDetailsPage() {
     const [file, setFile] = useState<Document | null>(null);
     const [users, setUsers] = useState<FileUser[]>([]);
     const [loading, setLoading] = useState(false);
+    const [replacing, setReplacing] = useState(false);
     const [newUserEmail, setNewUserEmail] = useState('');
     const token = localStorage.getItem('access_token') || '';
 
@@ -60,6 +63,59 @@ export default function FileDetailsPage() {
         }
     };
 
+    const handleDelete = async () => {
+        if (window.confirm('Вы уверены, что хотите удалить этот документ?')) {
+            setLoading(true);
+            try {
+                const success = await deleteFile(token, fileId!);
+                if (success) {
+                    message.success('Документ удален');
+                    navigate('/documents');
+                } else {
+                    message.error('Не удалось удалить документ');
+                }
+            } catch (err) {
+                message.error('Ошибка при удалении документа');
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    const handleSign = async () => {
+        setLoading(true);
+        try {
+            const success = await signFile(token, fileId!);
+            if (success) {
+                message.success('Документ подписан');
+                fetchFileData();
+            } else {
+                message.error('Не удалось подписать документ');
+            }
+        } catch (err) {
+            message.error('Ошибка при подписании документа');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleReplace = async (file: File) => {
+        setReplacing(true);
+        try {
+            const success = await replaceFile(token, fileId!, file);
+            if (success) {
+                message.success('Файл успешно заменен');
+                fetchFileData();
+            } else {
+                message.error('Ошибка замены файла');
+            }
+        } catch (err) {
+            message.error('Ошибка замены файла');
+        } finally {
+            setReplacing(false);
+        }
+    };
+
     const userColumns = [
         {
             title: 'Email',
@@ -88,7 +144,49 @@ export default function FileDetailsPage() {
                 Назад к документам
             </Button>
 
-            <Card title={<Title level={3}>{file.original_filename}</Title>} loading={loading}>
+            <Card 
+                title={
+                    <Space>
+                        <Title level={3}>{file.original_filename}</Title>
+                        <Tag color={file.is_signed ? 'green' : 'orange'}>
+                            {file.is_signed ? 'Подписан' : 'Не подписан'}
+                        </Tag>
+                    </Space>
+                } 
+                loading={loading}
+                extra={
+                    <Space>
+                        {!file.is_signed && (
+                            <Button
+                                type="primary"
+                                onClick={handleSign}
+                                loading={loading}
+                            >
+                                Подписать
+                            </Button>
+                        )}
+                        <Upload
+                            accept="*"
+                            showUploadList={false}
+                            customRequest={({ file }) => {
+                                const rcFile = file as RcFile;
+                                handleReplace(rcFile);
+                            }}
+                        >
+                            <Button icon={<UploadOutlined />} loading={replacing}>
+                                Заменить
+                            </Button>
+                        </Upload>
+                        <Button
+                            danger
+                            onClick={handleDelete}
+                            loading={loading}
+                        >
+                            Удалить
+                        </Button>
+                    </Space>
+                }
+            >
                 <Space direction="vertical" size="large" style={{ width: '100%' }}>
                     <div>
                         <Text strong>Владелец:</Text> {file.owner.full_name} ({file.owner.email})

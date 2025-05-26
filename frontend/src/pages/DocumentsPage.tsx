@@ -30,9 +30,7 @@ export default function DocumentsPage() {
     }
   };
 
-  // Пустая функция для кнопки фильтра
   const handleFilterClick = () => {
-    // Ничего не делаем
   };
 
   const handleUpload = async (name: string, file: File) => {
