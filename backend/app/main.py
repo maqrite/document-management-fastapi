@@ -4,6 +4,10 @@ from app.database import create_db_and_tables
 from .routers import documents, users
 from app.config import settings
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from fastapi import FastAPI, Request
+import logging
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -28,6 +32,15 @@ app.add_middleware(
 
 app.include_router(users.router)
 app.include_router(documents.router)
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logging.error(f"Validation error: {exc.errors()}")
+    logging.error(f"Request body: {await request.body()}")
+    return JSONResponse(
+        status_code=400,
+        content={"detail": exc.errors()},
+    )
 
 @app.get("/")
 async def root():

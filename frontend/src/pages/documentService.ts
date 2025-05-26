@@ -152,13 +152,23 @@ export async function replaceFile(token: string, fileId: string, file: File): Pr
 }
 
 export async function signFile(token: string, fileId: string): Promise<boolean> {
+    const body = JSON.stringify({ comments: "Signed from frontend" });
+
+    console.log("Sending request body:", body);
+
     try {
-        const response = await fetch(`http://localhost:8000/documents/signDocument/${fileId}`, {
+        const response = await fetch(`http://localhost:8000/documents/signDocument/${fileId}/`, {
             method: "POST",
             headers: {
                 "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json",
             },
+            body,
         });
+
+        const result = await response.json();
+        console.log("Response JSON:", result);
+
         return response.ok;
     } catch (err) {
         console.error('Error signing file:', err);
