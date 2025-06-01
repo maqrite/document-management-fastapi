@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Table, Space, Typography, Card, Input, message, Tag, Upload, Modal } from 'antd';
-import { UploadOutlined, EyeOutlined } from '@ant-design/icons';
+import { UploadOutlined, EyeOutlined, SafetyOutlined } from '@ant-design/icons';
 import { getFile, getFileUsers, addFileUser, Document, FileUser, deleteFile, replaceFile, signFile } from './documentService';
 import type { RcFile } from 'antd/es/upload/interface';
 
@@ -15,22 +15,9 @@ export default function FileDetailsPage() {
     const [loading, setLoading] = useState(false);
     const [replacing, setReplacing] = useState(false);
     const [newUserEmail, setNewUserEmail] = useState('');
-    const [isModalVisible, setIsModalVisible] = useState(false);
     const [isViewerVisible, setIsViewerVisible] = useState(false);
     const [viewerContent, setViewerContent] = useState<string>('');
     const token = localStorage.getItem('access_token') || '';
-
-    const showSignatureModal = () => {
-        setIsModalVisible(true);
-    };
-
-    const handleModalOk = () => {
-        setIsModalVisible(false);
-    };
-
-    const handleModalCancel = () => {
-        setIsModalVisible(false);
-    };
 
     useEffect(() => {
         if (fileId) fetchFileData();
@@ -145,7 +132,6 @@ export default function FileDetailsPage() {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error(`Ошибка при получении документа: ${response.status} ${response.statusText}`, errorText);
                 message.error(`Не удалось получить документ. Ошибка: ${response.statusText}`);
                 return;
             }
@@ -168,11 +154,14 @@ export default function FileDetailsPage() {
 
             setIsViewerVisible(true);
         } catch (err) {
-            console.error('Ошибка при просмотре документа:', err);
             message.error('Произошла ошибка при попытке просмотреть документ');
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleElectronicSignature = () => {
+        message.warning('Вам нужна подтвержденная подпись для использования этой функции');
     };
 
     const userColumns = [
@@ -222,6 +211,7 @@ export default function FileDetailsPage() {
                         >
                             Просмотреть
                         </Button>
+
                         {!file.is_signed && (
                             <Button
                                 type="primary"
@@ -231,6 +221,16 @@ export default function FileDetailsPage() {
                                 Подписать
                             </Button>
                         )}
+
+                        <Button
+                            type="primary"
+                            icon={<SafetyOutlined />}
+                            onClick={handleElectronicSignature}
+                            loading={loading}
+                        >
+                            Электронная подпись
+                        </Button>
+
                         <Upload
                             accept="*"
                             showUploadList={false}
@@ -286,15 +286,6 @@ export default function FileDetailsPage() {
                     </Space.Compact>
                 </Space>
             </Card>
-
-            <Modal
-                title="Электронная подпись"
-                visible={isModalVisible}
-                onOk={handleModalOk}
-                onCancel={handleModalCancel}
-            >
-                <p>Вам нужна подтвержденная подпись для использования этой функции</p>
-            </Modal>
 
             <Modal
                 title={`Просмотр документа: ${file.original_filename}`}
