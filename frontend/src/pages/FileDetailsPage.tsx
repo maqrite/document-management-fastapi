@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Table, Space, Typography, Card, Input, message, Tag, Upload, Modal } from 'antd';
 import { UploadOutlined, EyeOutlined, SafetyOutlined } from '@ant-design/icons';
@@ -7,8 +7,8 @@ import type { RcFile } from 'antd/es/upload/interface';
 
 const { Title, Text } = Typography;
 
-export default function FileDetailsPage() {
-    const { fileId } = useParams();
+const FileDetailsPage: React.FC = () => {
+    const { fileId } = useParams<{ fileId: string }>();
     const navigate = useNavigate();
     const [file, setFile] = useState<Document | null>(null);
     const [users, setUsers] = useState<FileUser[]>([]);
@@ -16,11 +16,13 @@ export default function FileDetailsPage() {
     const [replacing, setReplacing] = useState(false);
     const [newUserEmail, setNewUserEmail] = useState('');
     const [isViewerVisible, setIsViewerVisible] = useState(false);
-    const [viewerContent, setViewerContent] = useState<string>('');
+    const [viewerContent, setViewerContent] = useState('');
     const token = localStorage.getItem('access_token') || '';
 
     useEffect(() => {
-        if (fileId) fetchFileData();
+        if (fileId) {
+            fetchFileData();
+        }
     }, [fileId]);
 
     const fetchFileData = async () => {
@@ -140,11 +142,11 @@ export default function FileDetailsPage() {
             const fileURL = URL.createObjectURL(blob);
             const contentType = response.headers.get('Content-Type');
 
-            if (contentType && contentType.startsWith('application/pdf')) {
+            if (contentType?.startsWith('application/pdf')) {
                 setViewerContent(`<iframe src="${fileURL}" width="100%" height="600px" style="border:none;"></iframe>`);
-            } else if (contentType && contentType.startsWith('image/')) {
+            } else if (contentType?.startsWith('image/')) {
                 setViewerContent(`<img src="${fileURL}" style="max-width:100%;height:auto;" />`);
-            } else if (contentType && contentType.startsWith('text/')) {
+            } else if (contentType?.startsWith('text/')) {
                 const text = await blob.text();
                 setViewerContent(`<pre style="white-space:pre-wrap;">${text}</pre>`);
             } else {
@@ -227,6 +229,7 @@ export default function FileDetailsPage() {
                             icon={<SafetyOutlined />}
                             onClick={handleElectronicSignature}
                             loading={loading}
+                            disabled={loading}
                         >
                             Электронная подпись
                         </Button>
@@ -289,7 +292,7 @@ export default function FileDetailsPage() {
 
             <Modal
                 title={`Просмотр документа: ${file.original_filename}`}
-                visible={isViewerVisible}
+                open={isViewerVisible}
                 onCancel={() => setIsViewerVisible(false)}
                 footer={null}
                 width="80%"
@@ -299,4 +302,6 @@ export default function FileDetailsPage() {
             </Modal>
         </div>
     );
-}
+};
+
+export default FileDetailsPage;
