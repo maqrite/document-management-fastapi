@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Button, Table, Space, Typography, Card, Input, message, Tag, Upload } from 'antd';
+import { Button, Table, Space, Typography, Card, Input, message, Tag, Upload, Modal } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import { getFile, getFileUsers, addFileUser, Document, FileUser, deleteFile, replaceFile, signFile } from './documentService';
 import type { RcFile } from 'antd/es/upload/interface';
@@ -15,7 +15,20 @@ export default function FileDetailsPage() {
     const [loading, setLoading] = useState(false);
     const [replacing, setReplacing] = useState(false);
     const [newUserEmail, setNewUserEmail] = useState('');
+    const [isModalVisible, setIsModalVisible] = useState(false);
     const token = localStorage.getItem('access_token') || '';
+
+    const showSignatureModal = () => {
+        setIsModalVisible(true);
+    };
+
+    const handleModalOk = () => {
+        setIsModalVisible(false);
+    };
+
+    const handleModalCancel = () => {
+        setIsModalVisible(false);
+    };
 
     useEffect(() => {
         if (fileId) fetchFileData();
@@ -144,7 +157,7 @@ export default function FileDetailsPage() {
                 Назад к документам
             </Button>
 
-            <Card 
+            <Card
                 title={
                     <Space>
                         <Title level={3}>{file.original_filename}</Title>
@@ -152,7 +165,7 @@ export default function FileDetailsPage() {
                             {file.is_signed ? 'Подписан' : 'Не подписан'}
                         </Tag>
                     </Space>
-                } 
+                }
                 loading={loading}
                 extra={
                     <Space>
@@ -220,6 +233,15 @@ export default function FileDetailsPage() {
                     </Space.Compact>
                 </Space>
             </Card>
+
+            <Modal
+                title="Электронная подпись"
+                visible={isModalVisible}
+                onOk={handleModalOk}
+                onCancel={handleModalCancel}
+            >
+                <p>Вам нужна подтвержденная подпись для использования этой функции</p>
+            </Modal>
         </div>
     );
 }
