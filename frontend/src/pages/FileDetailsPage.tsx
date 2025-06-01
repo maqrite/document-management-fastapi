@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button, Table, Space, Typography, Card, Input, message, Tag, Upload, Modal } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
+import { UploadOutlined, EyeOutlined } from '@ant-design/icons';
 import { getFile, getFileUsers, addFileUser, Document, FileUser, deleteFile, replaceFile, signFile } from './documentService';
 import type { RcFile } from 'antd/es/upload/interface';
 
@@ -16,6 +16,8 @@ export default function FileDetailsPage() {
     const [replacing, setReplacing] = useState(false);
     const [newUserEmail, setNewUserEmail] = useState('');
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isViewerVisible, setIsViewerVisible] = useState(false);
+    const [viewerContent, setViewerContent] = useState<string>('');
     const token = localStorage.getItem('access_token') || '';
 
     const showSignatureModal = () => {
@@ -129,6 +131,50 @@ export default function FileDetailsPage() {
         }
     };
 
+    const handleViewDocument = async () => {
+        if (!file) return;
+
+        setLoading(true);
+        try {
+            const response = await fetch(`/api/documents/${fileId}/download/`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Ошибка при получении документа: ${response.status} ${response.statusText}`, errorText);
+                message.error(`Не удалось получить документ. Ошибка: ${response.statusText}`);
+                return;
+            }
+
+            const blob = await response.blob();
+            const fileURL = URL.createObjectURL(blob);
+            const contentType = response.headers.get('Content-Type');
+
+            if (contentType && contentType.startsWith('application/pdf')) {
+                setViewerContent(`<iframe src="${fileURL}" width="100%" height="600px" style="border:none;"></iframe>`);
+            } else if (contentType && contentType.startsWith('image/')) {
+                setViewerContent(`<img src="${fileURL}" style="max-width:100%;height:auto;" />`);
+            } else if (contentType && contentType.startsWith('text/')) {
+                const text = await blob.text();
+                setViewerContent(`<pre style="white-space:pre-wrap;">${text}</pre>`);
+            } else {
+                message.warning('Формат файла не поддерживается для прямого просмотра. Скачайте файл для просмотра.');
+                return;
+            }
+
+            setIsViewerVisible(true);
+        } catch (err) {
+            console.error('Ошибка при просмотре документа:', err);
+            message.error('Произошла ошибка при попытке просмотреть документ');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const userColumns = [
         {
             title: 'Email',
@@ -169,6 +215,13 @@ export default function FileDetailsPage() {
                 loading={loading}
                 extra={
                     <Space>
+                        <Button
+                            icon={<EyeOutlined />}
+                            onClick={handleViewDocument}
+                            loading={loading}
+                        >
+                            Просмотреть
+                        </Button>
                         {!file.is_signed && (
                             <Button
                                 type="primary"
@@ -241,6 +294,17 @@ export default function FileDetailsPage() {
                 onCancel={handleModalCancel}
             >
                 <p>Вам нужна подтвержденная подпись для использования этой функции</p>
+            </Modal>
+
+            <Modal
+                title={`Просмотр документа: ${file.original_filename}`}
+                visible={isViewerVisible}
+                onCancel={() => setIsViewerVisible(false)}
+                footer={null}
+                width="80%"
+                style={{ top: 20 }}
+            >
+                <div dangerouslySetInnerHTML={{ __html: viewerContent }} />
             </Modal>
         </div>
     );
